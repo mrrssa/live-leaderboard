@@ -4,7 +4,7 @@ async function run() {
   const browser = await chromium.launch();
   const page = await browser.newPage();
 
-  await page.goto("https://unbelievaboat.com/leaderboard/1497745326843363398/widget", {
+  await page.goto("https://unbelievaboat.com/leaderboard/1497745326843363398", {
     waitUntil: "networkidle"
   });
 
