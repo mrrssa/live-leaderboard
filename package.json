@@ -1,0 +1,1 @@
+{\n  "name": "live-leaderboard",\n  "version": "1.0.0",\n  "main": "server.js",\n  "scripts": {\n    "start": "node server.js"\n  },\n  "dependencies": {\n    "playwright": "^1.40.0",\n    "node-fetch": "^2.7.0"\n  }\n}
