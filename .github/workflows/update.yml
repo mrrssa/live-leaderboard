@@ -9,7 +9,7 @@ permissions:
   contents: write
 
 jobs:
-  build:
+  update:
     runs-on: ubuntu-latest
 
     steps:
@@ -29,11 +29,34 @@ jobs:
 
       - name: Run screenshot script
         run: node screenshot.js
-        
+
       - name: Commit updated image
         run: |
           git config user.name "github-actions"
           git config user.email "github-actions@github.com"
           git add leaderboard.png
-          git commit -m "Updated leaderboard image" || echo "No changes to commit"
-            git push
+          git commit -m "Updated leaderboard image" || echo "No changes"
+          git push
+
+      - name: Update Discord message
+        env:
+          DISCORD_WEBHOOK: ${{ secrets.DISCORD_WEBHOOK }}
+          MESSAGE_ID: ${{ secrets.DISCORD_MESSAGE_ID }}
+        run: |
+          TIMESTAMP=$(date +%s)
+          JSON_PAYLOAD=$(jq -n \
+            --arg url "https://mrrssa.github.io/live-leaderboard/leaderboard.png?ts=$TIMESTAMP" \
+            '{
+              "content": "**Live Leaderboard**",
+              "embeds": [
+                {
+                  "title": "Leaderboard",
+                  "image": { "url": $url }
+                }
+              ]
+            }')
+
+          curl -X PATCH \
+            -H "Content-Type: application/json" \
+            -d "$JSON_PAYLOAD" \
+            "$DISCORD_WEBHOOK/messages/$MESSAGE_ID"
