@@ -6,21 +6,20 @@ const { chromium } = require("playwright");
   });
 
   const page = await browser.newPage({
-    viewport: { width: 2000, height: 3000 }
+    viewport: { width: 1000, height: 2000 }
   });
 
   const url = "https://unbelievaboat.com/leaderboard/1497745326843363398/widget";
 
-  // Load page without waiting for network idle
+  // Load the page without waiting for network idle
   await page.goto(url, { waitUntil: "domcontentloaded", timeout: 60000 });
 
-  // Wait for the widget to appear
+  // Wait for ANY leaderboard element to appear
   await page.waitForSelector("body", { timeout: 60000 });
 
-  // Allow JS to finish rendering
+  // Extra wait to allow JS to render the widget
   await page.waitForTimeout(5000);
 
-  // Save screenshot
   await page.screenshot({
     path: "leaderboard.png",
     fullPage: true
