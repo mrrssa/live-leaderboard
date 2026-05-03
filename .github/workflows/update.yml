@@ -3,7 +3,7 @@ name: Update Leaderboard Image
 on:
   schedule:
     - cron: "*/5 * * * *"
-  workflow_dispatch:
+    workflow_dispatch:
 
 permissions:
   contents: write
