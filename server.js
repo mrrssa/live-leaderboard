@@ -1,37 +1,73 @@
-const express = require('express');
-const puppeteer = require('puppeteer');
-const { Client, GatewayIntentBits } = require('discord.js');
-require('dotenv').config();
+const express = require("express");
+const fetch = require("node-fetch");
+require("dotenv").config();
 
 const app = express();
 const PORT = process.env.PORT || 3000;
 
-// Initialize Discord Client
-const client = new Client({ intents: [GatewayIntentBits.Guilds, GatewayIntentBits.GuildMessages] });
-const DISCORD_CHANNEL_ID = 'your-channel-id'; // Replace with your channel ID
+// ENV variables you must set in Railway
+// DISCORD_WEBHOOK = your webhook URL
+// DISCORD_MESSAGE_ID = the message ID to patch
+// IMAGE_URL = https://mrrssa.github.io/live-leaderboard/leaderboard.png
 
-client.once('ready', () => {
-    console.log(`Logged in as ${client.user.tag}`);
-});
+const WEBHOOK = process.env.DISCORD_WEBHOOK;
+const MESSAGE_ID = process.env.DISCORD_MESSAGE_ID;
+const IMAGE_URL = process.env.IMAGE_URL;
 
-client.login(process.env.DISCORD_TOKEN); // Add your Discord bot token in .env file
+// How old the image can be before Railway updates it (in ms)
+const MAX_AGE = 15 * 60 * 1000; // 15 minutes
 
-// Function to take a screenshot and update Discord
-async function takeScreenshot() {
-    const browser = await puppeteer.launch();
-    const page = await browser.newPage();
-    await page.goto('https://your-website.com'); // Replace with your target website
-    const screenshot = await page.screenshot();
-    await browser.close();
+async function getImageAge() {
+    try {
+        const res = await fetch(IMAGE_URL, { method: "HEAD" });
+        const lastModified = res.headers.get("last-modified");
 
-    const channel = await client.channels.fetch(DISCORD_CHANNEL_ID);
-    channel.send({ files: [{ attachment: screenshot, name: 'screenshot.png' }] });
+        if (!lastModified) return Infinity;
+
+        const modifiedTime = new Date(lastModified).getTime();
+        const now = Date.now();
+
+        return now - modifiedTime;
+    } catch (err) {
+        console.error("Error checking image age:", err);
+        return Infinity;
+    }
 }
 
-// Take a screenshot every 30 seconds
-setInterval(takeScreenshot, 30000);
+async function updateDiscord() {
+    const age = await getImageAge();
 
-// Start the server
-app.listen(PORT, () => {
-    console.log(`Server is running on port ${PORT}`);
-});
+    if (age < MAX_AGE) {
+        console.log("Image is fresh. No update needed.");
+        return;
+    }
+
+    console.log("Image is stale. Sending backup PATCH…");
+
+    const timestamp = Date.now();
+
+    const payload = {
+        content: "**Live Leaderboard (Backup Update)**",
+        embeds: [
+            {
+                title: "Leaderboard",
+                image: { url: `${IMAGE_URL}?ts=${timestamp}` }
+            }
+        ]
+    };
+
+    await fetch(`${WEBHOOK}/messages/${MESSAGE_ID}`, {
+        method: "PATCH",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(payload)
+    });
+
+    console.log("Backup update sent.");
+}
+
+// Run every 10 minutes
+setInterval(updateDiscord, 10 * 60 * 1000);
+
+// Start server (Railway needs this)
+app.get("/", (req, res) => res.send("Backup leaderboard updater running."));
+app.listen(PORT, () => console.log(`Server running on port ${PORT}`));
