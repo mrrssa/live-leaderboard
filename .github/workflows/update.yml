@@ -29,9 +29,6 @@ jobs:
 
       - name: Run screenshot script
         run: node screenshot.js
-
-      - name: Pull latest changes
-        run: git pull --rebase
         
       - name: Commit updated image
         run: |
