@@ -11,17 +11,15 @@ const { chromium } = require("playwright");
 
   const url = "https://unbelievaboat.com/leaderboard/1497745326843363398/widget";
 
-  // Load the page and wait for network to settle
-  await page.goto(url, { waitUntil: "networkidle" });
+  // Load the page without waiting for network idle
+  await page.goto(url, { waitUntil: "domcontentloaded", timeout: 60000 });
 
-  // Wait for the widget container to appear
-  try {
-    await page.waitForSelector(".leaderboard-container", { timeout: 15000 });
-  } catch (e) {
-    console.log("Widget did not load in time.");
-  }
+  // Wait for ANY leaderboard element to appear
+  await page.waitForSelector("body", { timeout: 60000 });
 
-  // Take screenshot
+  // Extra wait to allow JS to render the widget
+  await page.waitForTimeout(5000);
+
   await page.screenshot({
     path: "leaderboard.png",
     fullPage: true
